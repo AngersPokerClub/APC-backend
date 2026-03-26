@@ -1,0 +1,53 @@
+{
+  "name": "apc-tournament",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "lint:fix": "node --loader ts-node/esm lint-and-fix.mts"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/modifiers": "^9.0.0",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@heroui/react": "^2.7.5",
+    "@hugeicons/core-free-icons": "^1.0.13",
+    "@hugeicons/react": "^1.0.5",
+    "@internationalized/date": "^3.8.0",
+    "@prisma/client": "^6.7.0",
+    "@tanstack/react-query": "^5.76.2",
+    "framer-motion": "^12.6.3",
+    "luxon": "^3.7.1",
+    "next": "15.2.6",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tanstack/eslint-plugin-query": "^5.74.7",
+    "@types/luxon": "^3.7.1",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@typescript-eslint/eslint-plugin": "^8.33.0",
+    "@typescript-eslint/parser": "^8.33.0",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.28.0",
+    "eslint-config-next": "15.2.4",
+    "eslint-formatter-table": "^7.32.1",
+    "postcss": "^8.5.3",
+    "prisma": "^6.7.0",
+    "tailwindcss": "^3.4.17",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "overrides": {
+    "@heroui/system": {
+      "@internationalized/date": "^3.8.0"
+    }
+  }
+}

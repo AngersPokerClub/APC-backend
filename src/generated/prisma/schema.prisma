@@ -1,0 +1,622 @@
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../src/generated/prisma"
+  binaryTargets = ["native", "windows"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model chip {
+  id         BigInt       @id @default(autoincrement()) @db.UnsignedBigInt
+  value      Int
+  chip_image String       @db.VarChar(255)
+  stack_chip stack_chip[]
+}
+
+model registration {
+  id                                                           BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id                                                      BigInt               @db.UnsignedBigInt
+  tournament_id                                                BigInt               @db.UnsignedBigInt
+  inscription_date                                             DateTime             @db.DateTime(0)
+  statut                                                       registration_statut
+  tournament                                                   tournament           @relation(fields: [tournament_id], references: [id], onDelete: Cascade, map: "registration_ibfk_2")
+  wp_users                                                     wp_users             @relation(fields: [user_id], references: [ID], onDelete: Cascade, map: "registration_ibfk_1")
+  table_assignment                                             table_assignment[]
+  table_assignment_table_assignment_user_kill_idToregistration table_assignment[]   @relation("table_assignment_user_kill_idToregistration")
+  tournament_ranking                                           tournament_ranking[]
+
+  @@index([tournament_id], map: "tournament_id")
+  @@index([user_id], map: "user_id")
+  @@index([inscription_date], map: "inscription_date_idx")
+  @@index([statut], map: "statut_idx")
+}
+
+model stack {
+  id                 Int          @id @default(autoincrement())
+  stack_name         String       @db.VarChar(255)
+  stack_total_player Int
+  stack_chip         stack_chip[]
+  tournament         tournament[]
+}
+
+model table_assignment {
+  id                                                       BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
+  registration_id                                          BigInt           @db.UnsignedBigInt
+  table_id                                                 BigInt           @db.UnsignedBigInt
+  table_seat_number                                        Int              @db.TinyInt
+  eliminated                                               Boolean          @default(false)
+  user_kill_id                                             BigInt?          @db.UnsignedBigInt
+  registration                                             registration     @relation(fields: [registration_id], references: [id], onDelete: Cascade, map: "table_assignment_ibfk_1")
+  tournament_table                                         tournament_table @relation(fields: [table_id], references: [id], onDelete: Cascade, map: "table_assignment_ibfk_2")
+  registration_table_assignment_user_kill_idToregistration registration?    @relation("table_assignment_user_kill_idToregistration", fields: [user_kill_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "table_assignment_ibfk_3")
+
+  @@index([registration_id], map: "registration_id")
+  @@index([table_id], map: "table_id")
+  @@index([user_kill_id], map: "user_kill_id")
+  @@index([eliminated], map: "eliminated_idx")
+  @@index([table_seat_number], map: "seat_number_idx")
+}
+
+model tournament {
+  id                      BigInt                         @id @default(autoincrement()) @db.UnsignedBigInt
+  wordpress_post_id       BigInt                         @db.UnsignedBigInt
+  tournament_name         String                         @db.VarChar(255)
+  tournament_description  String                         @db.VarChar(255)
+  tournament_start_date   DateTime                       @db.DateTime(0)
+  tournament_open_date    DateTime                       @db.DateTime(0)
+  tournament_trimestry    BigInt
+  tournament_category     tournament_tournament_category
+  tournament_status       tournament_tournament_status
+  estimate_duration       Int
+  tournament_stack        Int
+  tournament_pause        Boolean                        @default(false)
+  tournament_pause_date   DateTime?                      @db.Date
+  tournament_background_1 String?                        @db.VarChar(255)
+  tournament_background_2 String?                        @db.VarChar(255)
+  registration            registration[]
+  stack                   stack                          @relation(fields: [tournament_stack], references: [id], onUpdate: Restrict, map: "tournament_ibfk_1")
+  tournament_level        tournament_level[]
+  tournament_ranking      tournament_ranking[]
+  tournament_table        tournament_table[]
+
+  @@index([tournament_stack], map: "tournament_stack")
+  @@index([tournament_category], map: "category_idx")
+  @@index([tournament_start_date], map: "start_date_idx")
+  @@index([tournament_status], map: "status_idx")
+  @@index([tournament_trimestry], map: "trimestry_idx")
+}
+
+model tournament_level {
+  id                 BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  tournament_id      BigInt     @db.UnsignedBigInt
+  level_number       Int
+  level_start        DateTime   @db.DateTime(0)
+  level_end          DateTime   @db.DateTime(0)
+  level_small_blinde Int
+  level_big_blinde   Int
+  level_pause        Boolean
+  level_chip_race    Boolean
+  level_ante         Int?
+  tournament         tournament @relation(fields: [tournament_id], references: [id], onDelete: Cascade, map: "tournament_level_ibfk_1")
+
+  @@index([tournament_id], map: "tournament_id")
+  @@index([level_number], map: "level_number_idx")
+  @@index([level_start], map: "level_start_idx")
+}
+
+model tournament_ranking {
+  id               BigInt       @id @default(autoincrement()) @db.UnsignedBigInt
+  registration_id  BigInt       @db.UnsignedBigInt
+  tournament_id    BigInt       @db.UnsignedBigInt
+  ranking_position Int
+  ranking_score    Int
+  table_id         BigInt?      @db.UnsignedBigInt
+  registration     registration @relation(fields: [registration_id], references: [id], onUpdate: Restrict, map: "tournament_ranking_ibfk_1")
+  tournament       tournament   @relation(fields: [tournament_id], references: [id], onDelete: Cascade, map: "tournament_ranking_ibfk_2")
+
+  @@index([registration_id], map: "registration_id")
+  @@index([tournament_id], map: "tournament_id")
+  @@index([table_id], map: "table_id")
+  @@index([ranking_position], map: "ranking_position_idx")
+  @@index([ranking_score], map: "ranking_score_idx")
+}
+
+model tournament_table {
+  id               BigInt             @id @default(autoincrement()) @db.UnsignedBigInt
+  tournament_id    BigInt             @db.UnsignedBigInt
+  table_number     Int
+  table_capacity   Int                @db.TinyInt
+  table_assignment table_assignment[]
+  tournament       tournament         @relation(fields: [tournament_id], references: [id], onUpdate: Restrict, map: "tournament_table_ibfk_1")
+
+  @@index([tournament_id], map: "tournament_id")
+  @@index([table_capacity], map: "table_capacity_idx")
+  @@index([table_number], map: "table_number_idx")
+}
+
+model wp_actionscheduler_actions {
+  action_id            BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  hook                 String
+  status               String    @db.VarChar(20)
+  scheduled_date_gmt   DateTime? @default(dbgenerated("('0000-00-00 00:00:00')")) @db.DateTime(0)
+  scheduled_date_local DateTime? @default(dbgenerated("('0000-00-00 00:00:00')")) @db.DateTime(0)
+  priority             Int       @default(10) @db.UnsignedTinyInt
+  args                 String?
+  schedule             String?   @db.LongText
+  group_id             BigInt    @default(0) @db.UnsignedBigInt
+  attempts             Int       @default(0)
+  last_attempt_gmt     DateTime? @default(dbgenerated("('0000-00-00 00:00:00')")) @db.DateTime(0)
+  last_attempt_local   DateTime? @default(dbgenerated("('0000-00-00 00:00:00')")) @db.DateTime(0)
+  claim_id             BigInt    @default(0) @db.UnsignedBigInt
+  extended_args        String?   @db.VarChar(8000)
+
+  @@index([args], map: "args")
+  @@index([claim_id, status, scheduled_date_gmt], map: "claim_id_status_scheduled_date_gmt")
+  @@index([group_id], map: "group_id")
+  @@index([hook(length: 163), status, scheduled_date_gmt], map: "hook_status_scheduled_date_gmt")
+  @@index([last_attempt_gmt], map: "last_attempt_gmt")
+  @@index([scheduled_date_gmt], map: "scheduled_date_gmt")
+  @@index([status, scheduled_date_gmt], map: "status_scheduled_date_gmt")
+  @@index([claim_id, status, priority, scheduled_date_gmt], map: "claim_id_status_priority_scheduled_date_gmt")
+  @@index([status, claim_id], map: "status_claim_id")
+  @@index([status, last_attempt_gmt], map: "status_last_attempt_gmt")
+}
+
+model wp_actionscheduler_claims {
+  claim_id         BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  date_created_gmt DateTime? @default(dbgenerated("('0000-00-00 00:00:00')")) @db.DateTime(0)
+
+  @@index([date_created_gmt], map: "date_created_gmt")
+}
+
+model wp_actionscheduler_groups {
+  group_id BigInt @id @default(autoincrement()) @db.UnsignedBigInt
+  slug     String @db.VarChar(255)
+
+  @@index([slug(length: 191)], map: "slug")
+}
+
+model wp_actionscheduler_logs {
+  log_id         BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  action_id      BigInt    @db.UnsignedBigInt
+  message        String    @db.Text
+  log_date_gmt   DateTime? @default(dbgenerated("('0000-00-00 00:00:00')")) @db.DateTime(0)
+  log_date_local DateTime? @default(dbgenerated("('0000-00-00 00:00:00')")) @db.DateTime(0)
+
+  @@index([action_id], map: "action_id")
+  @@index([log_date_gmt], map: "log_date_gmt")
+}
+
+model wp_commentmeta {
+  meta_id    BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  comment_id BigInt  @default(0) @db.UnsignedBigInt
+  meta_key   String? @db.VarChar(255)
+  meta_value String? @db.LongText
+
+  @@index([comment_id], map: "comment_id")
+  @@index([meta_key(length: 191)], map: "meta_key")
+}
+
+model wp_comments {
+  comment_ID           BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  comment_post_ID      BigInt   @default(0) @db.UnsignedBigInt
+  comment_author       String   @db.TinyText
+  comment_author_email String   @default("") @db.VarChar(100)
+  comment_author_url   String   @default("") @db.VarChar(200)
+  comment_author_IP    String   @default("") @db.VarChar(100)
+  comment_date         DateTime @default(dbgenerated("('0000-00-00 00:00:00')")) @db.DateTime(0)
+  comment_date_gmt     DateTime @default(dbgenerated("('0000-00-00 00:00:00')")) @db.DateTime(0)
+  comment_content      String   @db.Text
+  comment_karma        Int      @default(0)
+  comment_approved     String   @default("1") @db.VarChar(20)
+  comment_agent        String   @default("") @db.VarChar(255)
+  comment_type         String   @default("comment") @db.VarChar(20)
+  comment_parent       BigInt   @default(0) @db.UnsignedBigInt
+  user_id              BigInt   @default(0) @db.UnsignedBigInt
+
+  @@index([comment_approved, comment_date_gmt], map: "comment_approved_date_gmt")
+  @@index([comment_author_email(length: 10)], map: "comment_author_email")
+  @@index([comment_date_gmt], map: "comment_date_gmt")
+  @@index([comment_parent], map: "comment_parent")
+  @@index([comment_post_ID], map: "comment_post_ID")
+}
+
+model wp_links {
+  link_id          BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  link_url         String   @default("") @db.VarChar(255)
+  link_name        String   @default("") @db.VarChar(255)
+  link_image       String   @default("") @db.VarChar(255)
+  link_target      String   @default("") @db.VarChar(25)
+  link_description String   @default("") @db.VarChar(255)
+  link_visible     String   @default("Y") @db.VarChar(20)
+  link_owner       BigInt   @default(1) @db.UnsignedBigInt
+  link_rating      Int      @default(0)
+  link_updated     DateTime @default(dbgenerated("('0000-00-00 00:00:00')")) @db.DateTime(0)
+  link_rel         String   @default("") @db.VarChar(255)
+  link_notes       String   @db.MediumText
+  link_rss         String   @default("") @db.VarChar(255)
+
+  @@index([link_visible], map: "link_visible")
+}
+
+model wp_options {
+  option_id    BigInt @id @default(autoincrement()) @db.UnsignedBigInt
+  option_name  String @unique(map: "option_name") @default("")
+  option_value String @db.LongText
+  autoload     String @default("yes") @db.VarChar(20)
+
+  @@index([autoload], map: "autoload")
+}
+
+model wp_postmeta {
+  meta_id    BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  post_id    BigInt  @default(0) @db.UnsignedBigInt
+  meta_key   String? @db.VarChar(255)
+  meta_value String? @db.LongText
+
+  @@index([meta_key(length: 191)], map: "meta_key")
+  @@index([post_id], map: "post_id")
+}
+
+model wp_posts {
+  ID                    BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  post_author           BigInt   @default(0) @db.UnsignedBigInt
+  post_date             DateTime @default(dbgenerated("('0000-00-00 00:00:00')")) @db.DateTime(0)
+  post_date_gmt         DateTime @default(dbgenerated("('0000-00-00 00:00:00')")) @db.DateTime(0)
+  post_content          String   @db.LongText
+  post_title            String   @db.Text
+  post_excerpt          String   @db.Text
+  post_status           String   @default("publish") @db.VarChar(20)
+  comment_status        String   @default("open") @db.VarChar(20)
+  ping_status           String   @default("open") @db.VarChar(20)
+  post_password         String   @default("") @db.VarChar(255)
+  post_name             String   @default("") @db.VarChar(200)
+  to_ping               String   @db.Text
+  pinged                String   @db.Text
+  post_modified         DateTime @default(dbgenerated("('0000-00-00 00:00:00')")) @db.DateTime(0)
+  post_modified_gmt     DateTime @default(dbgenerated("('0000-00-00 00:00:00')")) @db.DateTime(0)
+  post_content_filtered String   @db.LongText
+  post_parent           BigInt   @default(0) @db.UnsignedBigInt
+  guid                  String   @default("") @db.VarChar(255)
+  menu_order            Int      @default(0)
+  post_type             String   @default("post") @db.VarChar(20)
+  post_mime_type        String   @default("") @db.VarChar(100)
+  comment_count         BigInt   @default(0)
+
+  @@index([post_author], map: "post_author")
+  @@index([post_name(length: 191)], map: "post_name")
+  @@index([post_parent], map: "post_parent")
+  @@index([post_type, post_status, post_date, ID], map: "type_status_date")
+}
+
+model wp_tec_events {
+  event_id       BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  post_id        BigInt    @unique(map: "post_id") @db.UnsignedBigInt
+  start_date     String    @db.VarChar(19)
+  end_date       String?   @db.VarChar(19)
+  timezone       String    @default("UTC") @db.VarChar(30)
+  start_date_utc String    @db.VarChar(19)
+  end_date_utc   String?   @db.VarChar(19)
+  duration       Int?      @default(7200) @db.MediumInt
+  updated_at     DateTime? @default(now()) @db.Timestamp(0)
+  hash           String    @db.VarChar(40)
+}
+
+model wp_tec_occurrences {
+  occurrence_id  BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  event_id       BigInt    @db.UnsignedBigInt
+  post_id        BigInt    @db.UnsignedBigInt
+  start_date     DateTime  @db.DateTime(0)
+  start_date_utc DateTime  @db.DateTime(0)
+  end_date       DateTime  @db.DateTime(0)
+  end_date_utc   DateTime  @db.DateTime(0)
+  duration       Int?      @default(7200) @db.MediumInt
+  hash           String    @unique(map: "hash") @db.VarChar(40)
+  updated_at     DateTime? @default(now()) @db.Timestamp(0)
+
+  @@index([event_id], map: "event_id")
+  @@index([post_id, end_date, start_date], map: "idx_wp_tec_occurrences_post_id_dates")
+  @@index([post_id, end_date_utc, start_date_utc], map: "idx_wp_tec_occurrences_post_id_dates_utc")
+}
+
+model wp_tec_slr_layouts {
+  id             String   @id @db.VarChar(36)
+  name           String   @db.VarChar(255)
+  created_date   DateTime @db.DateTime(0)
+  map            String   @db.VarChar(36)
+  seats          Int      @default(0)
+  screenshot_url String?  @default("") @db.VarChar(255)
+}
+
+model wp_tec_slr_maps {
+  id             String  @id @db.VarChar(36)
+  name           String  @db.VarChar(255)
+  seats          Int     @default(0)
+  screenshot_url String? @default("") @db.VarChar(255)
+}
+
+model wp_tec_slr_seat_types {
+  id     String @id @db.VarChar(36)
+  name   String @db.VarChar(255)
+  map    String @db.VarChar(36)
+  layout String @db.VarChar(36)
+  seats  Int    @default(0)
+}
+
+model wp_tec_slr_sessions {
+  token           String   @id @db.VarChar(150)
+  object_id       BigInt
+  expiration      Int
+  reservations    Bytes?
+  expiration_lock Boolean? @default(false)
+}
+
+model wp_term_relationships {
+  object_id        BigInt @default(0) @db.UnsignedBigInt
+  term_taxonomy_id BigInt @default(0) @db.UnsignedBigInt
+  term_order       Int    @default(0)
+
+  @@id([object_id, term_taxonomy_id])
+  @@index([term_taxonomy_id], map: "term_taxonomy_id")
+}
+
+model wp_term_taxonomy {
+  term_taxonomy_id BigInt @id @default(autoincrement()) @db.UnsignedBigInt
+  term_id          BigInt @default(0) @db.UnsignedBigInt
+  taxonomy         String @default("") @db.VarChar(32)
+  description      String @db.LongText
+  parent           BigInt @default(0) @db.UnsignedBigInt
+  count            BigInt @default(0)
+
+  @@unique([term_id, taxonomy], map: "term_id_taxonomy")
+  @@index([taxonomy], map: "taxonomy")
+}
+
+model wp_termmeta {
+  meta_id    BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  term_id    BigInt  @default(0) @db.UnsignedBigInt
+  meta_key   String? @db.VarChar(255)
+  meta_value String? @db.LongText
+
+  @@index([meta_key(length: 191)], map: "meta_key")
+  @@index([term_id], map: "term_id")
+}
+
+model wp_terms {
+  term_id    BigInt @id @default(autoincrement()) @db.UnsignedBigInt
+  name       String @default("") @db.VarChar(200)
+  slug       String @default("") @db.VarChar(200)
+  term_group BigInt @default(0)
+
+  @@index([name(length: 191)], map: "name")
+  @@index([slug(length: 191)], map: "slug")
+}
+
+model wp_um_metadata {
+  umeta_id BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id  BigInt  @default(0) @db.UnsignedBigInt
+  um_key   String? @db.VarChar(255)
+  um_value String? @db.LongText
+
+  @@index([um_key], map: "meta_key_indx")
+  @@index([um_value(length: 191)], map: "meta_value_indx")
+  @@index([user_id], map: "user_id_indx")
+}
+
+model wp_usermeta {
+  umeta_id   BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id    BigInt  @default(0) @db.UnsignedBigInt
+  meta_key   String? @db.VarChar(255)
+  meta_value String? @db.LongText
+
+  user wp_users @relation("UserMetaToUser", fields: [user_id], references: [ID])
+
+  @@index([meta_key(length: 191)], map: "meta_key")
+  @@index([user_id], map: "user_id")
+}
+
+model wp_users {
+  ID                  BigInt         @id @default(autoincrement()) @db.UnsignedBigInt
+  user_login          String         @default("") @db.VarChar(60)
+  user_pass           String         @default("") @db.VarChar(255)
+  user_nicename       String         @default("") @db.VarChar(50)
+  user_email          String         @default("") @db.VarChar(100)
+  user_url            String         @default("") @db.VarChar(100)
+  user_registered     DateTime       @default(dbgenerated("('0000-00-00 00:00:00')")) @db.DateTime(0)
+  user_activation_key String         @default("") @db.VarChar(255)
+  user_status         Int            @default(0)
+  display_name        String         @default("") @db.VarChar(250)
+  pseudo_winamax      String         @db.VarChar(255)
+  photo_url           String         @db.VarChar(255)
+  registration        registration[]
+  repechage           repechage[]
+
+  wp_usermeta wp_usermeta[] @relation("UserMetaToUser")
+
+  @@index([user_email], map: "user_email")
+  @@index([user_login], map: "user_login_key")
+  @@index([user_nicename], map: "user_nicename")
+}
+
+model stack_chip {
+  stack_id Int
+  chip_id  BigInt @db.UnsignedBigInt
+  chip     chip   @relation(fields: [chip_id], references: [id], onDelete: Cascade, map: "stack_chip_ibfk_2")
+  stack    stack  @relation(fields: [stack_id], references: [id], onDelete: Cascade, map: "stack_chip_ibfk_3")
+
+  @@id([stack_id, chip_id])
+  @@index([chip_id], map: "chip_id")
+}
+
+model wp_fbv {
+  id         Int    @id @unique(map: "id") @default(autoincrement()) @db.UnsignedInt
+  name       String @db.VarChar(250)
+  parent     Int    @default(0)
+  type       Int    @default(0)
+  ord        Int?   @default(0)
+  created_by Int?   @default(0)
+}
+
+model wp_fbv_attachment_folder {
+  folder_id     Int    @db.UnsignedInt
+  attachment_id BigInt @db.UnsignedBigInt
+
+  @@id([folder_id, attachment_id])
+}
+
+model wp_rank_math_analytics_gsc {
+  id          BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  created     DateTime @db.Timestamp(0)
+  query       String   @db.VarChar(1000)
+  page        String   @db.VarChar(500)
+  clicks      Int      @db.MediumInt
+  impressions Int      @db.MediumInt
+  position    Float
+  ctr         Float
+
+  @@index([page(length: 190)], map: "analytics_page")
+  @@index([query(length: 190)], map: "analytics_query")
+  @@index([clicks], map: "clicks")
+  @@index([position], map: "rank_position")
+}
+
+model wp_rank_math_analytics_inspections {
+  id                   BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  page                 String   @db.VarChar(500)
+  created              DateTime @db.Timestamp(0)
+  index_verdict        String   @db.VarChar(64)
+  indexing_state       String   @db.VarChar(64)
+  coverage_state       String   @db.Text
+  page_fetch_state     String   @db.VarChar(64)
+  robots_txt_state     String   @db.VarChar(64)
+  rich_results_verdict String   @db.VarChar(64)
+  rich_results_items   String   @db.LongText
+  last_crawl_time      DateTime @db.Timestamp(0)
+  crawled_as           String   @db.VarChar(64)
+  google_canonical     String   @db.Text
+  user_canonical       String   @db.Text
+  sitemap              String   @db.Text
+  referring_urls       String   @db.LongText
+  raw_api_response     String   @db.LongText
+
+  @@index([page(length: 190)], map: "analytics_object_page")
+  @@index([created], map: "created")
+  @@index([index_verdict], map: "index_verdict")
+  @@index([page_fetch_state], map: "page_fetch_state")
+  @@index([rich_results_verdict], map: "rich_results_verdict")
+  @@index([robots_txt_state], map: "robots_txt_state")
+}
+
+model wp_rank_math_analytics_objects {
+  id                  BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  created             DateTime  @db.Timestamp(0)
+  title               String    @db.Text
+  page                String    @db.VarChar(500)
+  object_type         String    @db.VarChar(100)
+  object_subtype      String    @db.VarChar(100)
+  object_id           BigInt    @db.UnsignedBigInt
+  primary_key         String    @db.VarChar(255)
+  seo_score           Int       @default(0) @db.TinyInt
+  page_score          Int       @default(0) @db.TinyInt
+  is_indexable        Boolean   @default(true)
+  schemas_in_use      String?   @db.VarChar(500)
+  desktop_interactive Float?    @default(0)
+  desktop_pagescore   Float?    @default(0)
+  mobile_interactive  Float?    @default(0)
+  mobile_pagescore    Float?    @default(0)
+  pagespeed_refreshed DateTime? @db.Timestamp(0)
+
+  @@index([page(length: 190)], map: "analytics_object_page")
+}
+
+model wp_rank_math_internal_links {
+  id             BigInt @id @default(autoincrement()) @db.UnsignedBigInt
+  url            String @db.VarChar(255)
+  post_id        BigInt @db.UnsignedBigInt
+  target_post_id BigInt @db.UnsignedBigInt
+  type           String @db.VarChar(8)
+
+  @@index([post_id, type], map: "link_direction")
+  @@index([target_post_id], map: "target_post_id")
+}
+
+model wp_rank_math_internal_meta {
+  object_id           BigInt @id @db.UnsignedBigInt
+  internal_link_count Int?   @default(0) @db.UnsignedInt
+  external_link_count Int?   @default(0) @db.UnsignedInt
+  incoming_link_count Int?   @default(0) @db.UnsignedInt
+}
+
+model repechage {
+  id               BigInt                     @id @default(autoincrement())
+  trimester_id     BigInt?
+  user_id          BigInt                     @db.UnsignedBigInt
+  category         String                     @db.VarChar(255)
+  repechage_etat   repechage_repechage_etat
+  repechage_period repechage_repechage_period
+  trimester        trimester?                 @relation(fields: [trimester_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "repechage_ibfk_1")
+  wp_users         wp_users                   @relation(fields: [user_id], references: [ID], onUpdate: Restrict, map: "repechage_ibfk_2")
+
+  @@index([trimester_id], map: "trimester_id")
+  @@index([user_id], map: "user_id")
+}
+
+model season {
+  id         BigInt        @id @default(autoincrement())
+  name       String        @db.VarChar(255)
+  start_date DateTime      @db.Date
+  end_date   DateTime      @db.Date
+  status     season_status
+  trimester  trimester[]
+}
+
+model trimester {
+  id         BigInt      @id @default(autoincrement())
+  season_id  BigInt
+  number     Int
+  start_date DateTime    @db.Date
+  end_date   DateTime    @db.Date
+  repechage  repechage[]
+  season     season      @relation(fields: [season_id], references: [id], onUpdate: Restrict, map: "trimester_ibfk_1")
+
+  @@index([season_id], map: "season_id")
+}
+
+enum registration_statut {
+  Confirmed
+  Pending
+  Cancelled
+}
+
+enum tournament_tournament_status {
+  in_coming
+  finish
+  start
+}
+
+enum season_status {
+  draft
+  in_progress
+  past
+}
+
+enum tournament_tournament_category {
+  APT
+  SPECIAUX
+  SITANDGO
+  SUPERFINALE
+  SOLIPOKER
+}
+
+enum repechage_repechage_etat {
+  qualif
+  repecher
+}
+
+enum repechage_repechage_period {
+  trimestry
+  annuel
+}
