@@ -180,12 +180,28 @@ export default function TournamentDetailPage() {
             />
           )}
           {tournament.tournament_status === "start" && (
-            <ButtonComponents
-              text="Lancer le tournoi"
-              onClick={() => setIsLaunchModalOpen(true)}
-              buttonClassName="bg-primary_background hover:bg-primary_hover_background"
-              textClassName="text-primary_brand-50"
-            />
+            <>
+              <ButtonComponents
+                text="Lancer le tournoi"
+                onClick={() => setIsLaunchModalOpen(true)}
+                buttonClassName="bg-primary_background hover:bg-primary_hover_background"
+                textClassName="text-primary_brand-50"
+              />
+              <ButtonComponents
+                text="Prévisualiser l'affichage"
+                onClick={() => window.open(`/game/${id}`)}
+                icon={
+                  <HugeiconsIcon
+                    icon={LinkSquare02Icon}
+                    size={20}
+                    className="shrink-0"
+                    color="white"
+                  />
+                }
+                buttonClassName="bg-primary_background hover:bg-primary_hover_background"
+                textClassName="text-primary_brand-50"
+              />
+            </>
           )}
           {tournament.tournament_table?.length != 0 && selectedTab == "3" && (
             <ButtonComponents
@@ -205,14 +221,12 @@ export default function TournamentDetailPage() {
           )}
           {tournament.tournament_status === "in_coming" && (
             <>
-              {tournament.tournament_category === "SOLIPOKER" && (
-                <ButtonComponents
-                  text="Mettre fin au tournoi"
-                  onClick={() => setIsEndModalOpen(true)}
-                  buttonClassName="bg-danger-900 hover:bg-danger-500"
-                  textClassName="text-white"
-                />
-              )}
+              <ButtonComponents
+                text="Mettre fin au tournoi"
+                onClick={() => setIsEndModalOpen(true)}
+                buttonClassName="bg-danger-900 hover:bg-danger-500"
+                textClassName="text-white"
+              />
               <ButtonComponents
                 text={
                   tournament.tournament_pause

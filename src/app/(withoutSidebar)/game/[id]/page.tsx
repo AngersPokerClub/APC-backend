@@ -38,6 +38,7 @@ export default function Game() {
   const [isLoadingDay1Data, setIsLoadingDay1Data] = useState(false);
 
   const isPaused = tournament?.tournament_pause === true;
+  const isNotStarted = tournament?.tournament_status === "start";
 
   // Get synchronized time (adjusted for server offset)
   const getSyncedNow = () => {
@@ -355,12 +356,16 @@ export default function Game() {
           <div className="space-y-4">
             <InfoItem
               label="Niveau"
-              value={currentLevel?.level_number.toString() ?? "-"}
+              value={isNotStarted ? "-" : (currentLevel?.level_number.toString() ?? "-")}
             />
             <InfoItem
               label="Durée totale"
               value={
-                tournament ? (
+                isNotStarted ? (
+                  <span className="font-satoshiBold tabular-nums">
+                    --:--:--
+                  </span>
+                ) : tournament ? (
                   <span className="font-satoshiBold tabular-nums">
                     {getDurationSince(String(tournament.tournament_start_date))}
                   </span>
@@ -373,7 +378,7 @@ export default function Game() {
               label="Pause"
               value={
                 <span className="font-satoshiBold tabular-nums">
-                  {getTimeUntilNextPause()}
+                  {isNotStarted ? "-" : getTimeUntilNextPause()}
                 </span>
               }
             />
@@ -381,40 +386,52 @@ export default function Game() {
 
           <div className="text-center text-primary_brand-50">
             <div className="text-xl12 font-satoshiBold tabular-nums">
-              {currentLevel
-                ? getTimeLeft(
-                    DateTime.fromISO(currentLevel.level_end, { zone: "utc" })
-                      .setZone("Europe/Paris")
-                      .toJSDate(),
-                  )
-                : "--:--"}
+              {isNotStarted
+                ? "--:--:--"
+                : currentLevel
+                  ? getTimeLeft(
+                      DateTime.fromISO(currentLevel.level_end, { zone: "utc" })
+                        .setZone("Europe/Paris")
+                        .toJSDate(),
+                    )
+                  : "--:--"}
             </div>
             <div className="text-xl7 font-satoshiBold">
-              {currentLevel?.level_pause
-                ? "PAUSE"
-                : currentLevel && !currentLevel.level_pause
-                  ? `${currentLevel.level_small_blinde}/${currentLevel.level_big_blinde}/${currentLevel.level_ante}`
-                  : nextLevel
-                    ? `${nextLevel.level_small_blinde}/${nextLevel.level_big_blinde}`
-                    : "-/-"}
+              {isNotStarted
+                ? levels.length > 0
+                  ? `${levels[0].level_small_blinde}/${levels[0].level_big_blinde}/${levels[0].level_ante}`
+                  : "-/-"
+                : currentLevel?.level_pause
+                  ? "PAUSE"
+                  : currentLevel && !currentLevel.level_pause
+                    ? `${currentLevel.level_small_blinde}/${currentLevel.level_big_blinde}/${currentLevel.level_ante}`
+                    : nextLevel
+                      ? `${nextLevel.level_small_blinde}/${nextLevel.level_big_blinde}`
+                      : "-/-"}
             </div>
             <div className="text-xl4 font-satoshiBold">
-              {nextLevel
-                ? `${nextLevel.level_small_blinde}/${nextLevel.level_big_blinde}/${nextLevel.level_ante}`
-                : "-/-"}
+              {isNotStarted
+                ? levels.length > 1 && !levels[1].level_pause
+                  ? `${levels[1].level_small_blinde}/${levels[1].level_big_blinde}/${levels[1].level_ante}`
+                  : "-/-"
+                : nextLevel
+                  ? `${nextLevel.level_small_blinde}/${nextLevel.level_big_blinde}/${nextLevel.level_ante}`
+                  : "-/-"}
             </div>
           </div>
 
           <div className="space-y-4 text-right">
             <InfoItem
               label="Stack moyen"
-              value={isLoadingDay1Data ? "-" : getAverageStackAlive()}
+              value={isNotStarted
+                ? (tournament?.stack?.stack_total_player?.toString() ?? "-")
+                : isLoadingDay1Data ? "-" : getAverageStackAlive()}
             />
             <InfoItem
               label="Joueurs"
-              value={`${getAlivePlayers().length}/${
-                getConfirmedPlayers().length
-              }`}
+              value={isNotStarted
+                ? `${getConfirmedPlayers().length}`
+                : `${getAlivePlayers().length}/${getConfirmedPlayers().length}`}
             />
           </div>
         </div>

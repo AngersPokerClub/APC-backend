@@ -820,7 +820,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "C:\\Users\\teixe\\Documents\\project\\apc-tournament\\src\\generated\\prisma",
+      "value": "C:\\Users\\teixe\\Documents\\project\\apc-backend\\src\\generated\\prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -838,7 +838,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "C:\\Users\\teixe\\Documents\\project\\apc-tournament\\prisma\\schema.prisma",
+    "sourceFilePath": "C:\\Users\\teixe\\Documents\\project\\apc-backend\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
