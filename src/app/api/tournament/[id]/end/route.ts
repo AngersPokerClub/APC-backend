@@ -40,14 +40,20 @@ export async function PATCH(req: NextRequest) {
 					{ status: 404 }
 				);
 
-			// 2. Récupère les survivants
+			// 2. Récupère les survivants + leur user_id en une seule requête (évite N+1)
 			const survivors = await prisma.table_assignment.findMany({
 				where: {
 					eliminated: false,
 					tournament_table: { tournament_id: tournamentId },
 				},
-				select: { registration_id: true },
+				select: {
+					registration_id: true,
+					registration: {
+						select: { user_id: true },
+					},
+				},
 			});
+
 			const survivorRegistrationIds = survivors.map((s) => s.registration_id);
 
 			// 3. Récupère et trie le classement
@@ -82,9 +88,19 @@ export async function PATCH(req: NextRequest) {
 					);
 				}
 
+				// Cherche le tournoi du dimanche dans les 7 jours suivant le tournoi courant,
+				// pour éviter de matcher un autre SOLIPOKER du même trimestre.
+				const sevenDaysLater = new Date(
+					mainTournament.tournament_start_date.getTime() + 7 * 24 * 60 * 60 * 1000
+				);
+
 				const sundayTournament = await prisma.tournament.findFirst({
 					where: {
 						tournament_trimestry: mainTournament.tournament_trimestry,
+						tournament_start_date: {
+							gt: mainTournament.tournament_start_date,
+							lte: sevenDaysLater,
+						},
 						OR: [
 							{ tournament_name: { contains: "dimanche" } },
 							{ tournament_name: { contains: "Dimanche" } },
@@ -104,52 +120,55 @@ export async function PATCH(req: NextRequest) {
 
 				sundayTournamentId = sundayTournament.id;
 
-				const userIds: bigint[] = [];
-				for (const regId of survivorRegistrationIds) {
-					const reg = await prisma.registration.findUnique({
-						where: { id: regId },
-						select: { user_id: true },
-					});
-					if (!reg || !reg.user_id) {
+				// Construit les inscriptions à partir des données déjà fetchées (pas de N+1)
+				for (const survivor of survivors) {
+					if (!survivor.registration?.user_id) {
 						console.error(
-							`Registration invalide ou manquante pour survivor: ${regId}`
+							`Registration invalide ou manquante pour survivor: ${survivor.registration_id}`
 						);
 						return NextResponse.json(
 							{
-								error: `Données de survivor invalides (registration_id: ${regId})`,
+								error: `Données de survivor invalides (registration_id: ${survivor.registration_id})`,
 							},
 							{ status: 400 }
 						);
 					}
-					userIds.push(BigInt(reg.user_id));
+					registrationCreateData.push({
+						user_id: BigInt(survivor.registration.user_id),
+						tournament_id: sundayTournament.id,
+						inscription_date: DateTime.now().toJSDate(),
+						statut: $Enums.registration_statut.Confirmed,
+					});
 				}
-
-				registrationCreateData = userIds.map((user_id) => ({
-					user_id,
-					tournament_id: sundayTournament.id,
-					inscription_date: DateTime.now().toJSDate(),
-					statut: $Enums.registration_statut.Confirmed,
-				}));
 			}
 
-			// 6. Transaction : update tournoi + classement + inscriptions dimanche (SOLIPOKER only)
-			const transactionOps = [
-				prisma.tournament.update({
+			// 6. Transaction : update tournoi + classement (batch via raw SQL) + inscriptions dimanche
+			await prisma.$transaction(async (tx) => {
+				// Update du statut du tournoi
+				await tx.tournament.update({
 					where: { id: tournamentId },
 					data: { tournament_status: "finish" },
-				}),
-				...registrationCreateData.map((data) =>
-					prisma.registration.create({ data })
-				),
-				...eliminatedRankings.map((elim) =>
-					prisma.tournament_ranking.update({
-						where: { id: elim.id },
-						data: { ranking_position: elim.ranking_position },
-					})
-				),
-			];
+				});
 
-			await prisma.$transaction(transactionOps);
+				// Inscriptions dimanche en batch (createMany) — SOLIPOKER only
+				if (registrationCreateData.length > 0) {
+					await tx.registration.createMany({
+						data: registrationCreateData,
+						skipDuplicates: true,
+					});
+				}
+
+				// Update du classement des éliminés en une seule requête SQL raw
+				if (eliminatedRankings.length > 0) {
+					const cases = eliminatedRankings
+						.map((elim) => `WHEN id = ${elim.id} THEN ${elim.ranking_position}`)
+						.join(" ");
+					const ids = eliminatedRankings.map((elim) => elim.id).join(", ");
+					await tx.$executeRawUnsafe(
+						`UPDATE tournament_ranking SET ranking_position = CASE ${cases} END WHERE id IN (${ids})`
+					);
+				}
+			});
 
 			return NextResponse.json(
 				serializeBigInt({
