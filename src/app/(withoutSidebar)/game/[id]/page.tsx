@@ -158,20 +158,22 @@ export default function Game() {
 
   const getAverageStackAlive = () => {
     const alivePlayersCount = getAlivePlayers().length;
+    const confirmedPlayersCount = getConfirmedPlayers().length;
+    // Before tournament starts, no assignments exist — fall back to confirmed players
+    const divisor = alivePlayersCount > 0 ? alivePlayersCount : confirmedPlayersCount;
 
-    if (alivePlayersCount === 0) return "0";
+    if (divisor === 0) return "0";
 
     // Special calculation for SOLIPOKER Day 2
     if (isSolipokerDay2() && day1TotalChips !== null) {
-      const averageStack = day1TotalChips / alivePlayersCount;
+      const averageStack = day1TotalChips / divisor;
       return Math.round(averageStack).toString();
     }
 
     // Classic calculation for all other tournaments
-    const confirmedPlayersCount = getConfirmedPlayers().length;
     const stackTotalPerPlayer = tournament?.stack?.stack_total_player ?? 0;
     const totalChipsInitial = stackTotalPerPlayer * confirmedPlayersCount;
-    const averageStack = totalChipsInitial / alivePlayersCount;
+    const averageStack = totalChipsInitial / divisor;
 
     return Math.round(averageStack).toString();
   };
@@ -423,9 +425,7 @@ export default function Game() {
           <div className="space-y-4 text-right">
             <InfoItem
               label="Stack moyen"
-              value={isNotStarted
-                ? (tournament?.stack?.stack_total_player?.toString() ?? "-")
-                : isLoadingDay1Data ? "-" : getAverageStackAlive()}
+              value={isLoadingDay1Data ? "-" : getAverageStackAlive()}
             />
             <InfoItem
               label="Joueurs"
