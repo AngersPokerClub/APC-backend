@@ -73,7 +73,7 @@ export async function PATCH(req: NextRequest) {
 			// 5. Logique spécifique SOLIPOKER : inscrire les survivants au tournoi du dimanche
 			const isSolipoker = mainTournament.tournament_category === "SOLIPOKER";
 			let sundayTournamentId: bigint | null = null;
-			let registrationCreateData: {
+			const registrationCreateData: {
 				user_id: bigint;
 				tournament_id: bigint;
 				inscription_date: Date;
